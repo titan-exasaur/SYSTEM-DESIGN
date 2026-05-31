@@ -88,6 +88,7 @@
 
     button:hover { background: #3c3489; }
     button:active { transform: scale(0.98); }
+    button:disabled { background: #aaa; cursor: not-allowed; }
 
     .divider {
       height: 1px;
@@ -96,13 +97,17 @@
     }
 
     .result {
+      display: none;
       background: #fafaf8;
       border: 1px solid #e8e8e4;
       border-radius: 12px;
       padding: 1.2rem 1.4rem;
-      display: flex;
       align-items: center;
       justify-content: space-between;
+    }
+
+    .result.visible {
+      display: flex;
     }
 
     .result-label {
@@ -138,6 +143,7 @@
       font-size: 13px;
       color: #c0392b;
       margin-top: 8px;
+      min-height: 18px;
     }
   </style>
 </head>
@@ -147,32 +153,81 @@
     <h1>Predict</h1>
     <p class="sub">Linear regression model</p>
 
-    <form method="POST" action="/predict">
-      <label for="inp">Input value</label>
-      <input type="number" id="inp" name="input" placeholder="Enter an integer" required />
-      <button type="submit">Run →</button>
-    </form>
+    <label for="inp">Input value</label>
+    <input type="number" id="inp" placeholder="Enter an integer" required />
+    <button id="btn" onclick="runPredict()">Run →</button>
 
-    {% if error %}
-      <p class="error">{{ error }}</p>
-    {% endif %}
+    <div class="error" id="err"></div>
 
-    {% if prediction is not none %}
-      <div class="divider"></div>
-      <div class="result">
-        <div>
-          <div class="result-label">Prediction</div>
-          <div class="result-value">{{ prediction }}</div>
-        </div>
-        <div class="result-meta">
-          Input: {{ input_val }}
-          <br>
-          <span class="badge">output = input + 1</span>
-        </div>
+    <div class="divider"></div>
+
+    <div class="result" id="result">
+      <div>
+        <div class="result-label">Prediction</div>
+        <div class="result-value" id="result-value"></div>
       </div>
-    {% endif %}
+      <div class="result-meta">
+        <span id="result-input-echo"></span>
+        <br>
+        <span class="badge">output = input + 1</span>
+      </div>
+    </div>
 
   </div>
+
+  <script>
+    async function runPredict() {
+      const inp = document.getElementById('inp');
+      const err = document.getElementById('err');
+      const btn = document.getElementById('btn');
+      const result = document.getElementById('result');
+      const resultValue = document.getElementById('result-value');
+      const echo = document.getElementById('result-input-echo');
+
+      // validate
+      const raw = inp.value.trim();
+      if (raw === '' || !Number.isInteger(Number(raw))) {
+        err.textContent = 'Please enter a valid integer.';
+        return;
+      }
+      err.textContent = '';
+      const x = parseInt(raw, 10);
+
+      // loading state
+      btn.disabled = true;
+      btn.textContent = 'Running...';
+      result.classList.remove('visible');
+
+      try {
+        const res = await fetch('/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ x: x })        // matches RegressionInput.x in FastAPI
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          err.textContent = data.error || 'Something went wrong.';
+          return;
+        }
+
+        const data = await res.json();
+        resultValue.textContent = data.prediction;
+        echo.textContent = 'Input: ' + data.input;
+        result.classList.add('visible');
+
+      } catch (e) {
+        err.textContent = 'Could not reach the server.';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Run →';
+      }
+    }
+
+    document.getElementById('inp').addEventListener('keydown', e => {
+      if (e.key === 'Enter') runPredict();
+    });
+  </script>
 
 </body>
 </html>
