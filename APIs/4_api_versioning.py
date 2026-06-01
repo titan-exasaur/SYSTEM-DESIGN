@@ -12,11 +12,9 @@ app = FastAPI(title='Simple Linear Regression', version='1.0.0')
 router = APIRouter(prefix='/api/v1', tags=['v1'])
 templates = Jinja2Templates(directory='templates')
 
-# registering the router on the app
-app.include_router(router)
 
 try:
-    model = joblib.load(r'/Users/amith2831/Desktop/PROJECTS/SYSTEM DESIGN/Simple_Regression/model.pkl')
+    model = joblib.load('artifacts/model.pkl')
     logger.info("Model loaded successfully")
 except Exception as e:
     raise RuntimeError(f"Model could not be loaded: {e}")
@@ -53,3 +51,6 @@ async def predict(data: RegressionInput):
     except Exception as e:
         logger.error(f"Prediction failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
+    
+# registering the router on the app
+app.include_router(router)

@@ -199,7 +199,7 @@
       result.classList.remove('visible');
 
       try {
-        const res = await fetch('/predict', {
+        const res = await fetch('/api/v1/predict', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ x: x })        // matches RegressionInput.x in FastAPI
