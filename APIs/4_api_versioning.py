@@ -1,7 +1,7 @@
 import joblib
 import logging
-from fastapi import FastAPI, Request
 from pydantic import BaseModel
+from fastapi import FastAPI, Request, APIRouter
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
@@ -9,7 +9,11 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 app = FastAPI(title='Simple Linear Regression', version='1.0.0')
+router = APIRouter(prefix='/api/v1', tags=['v1'])
 templates = Jinja2Templates(directory='templates')
+
+# registering the router on the app
+app.include_router(router)
 
 try:
     model = joblib.load(r'/Users/amith2831/Desktop/PROJECTS/SYSTEM DESIGN/Simple_Regression/model.pkl')
@@ -28,17 +32,17 @@ class RegressionInput(BaseModel):
     }
 
 
-@app.get('/', response_class=HTMLResponse)
+@router.get('/', response_class=HTMLResponse)
 async def index(request: Request):
     return templates.TemplateResponse(request=request, name="index.html")
 
 
-@app.get('/health')
+@router.get('/health')
 async def health():
     return {"status": "ok", "model_loaded": model is not None}
 
 
-@app.post('/predict')
+@router.post('/predict')
 async def predict(data: RegressionInput):
     try:
         y = model.predict([[data.x]])
